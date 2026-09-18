@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paycheck Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #ede7d8;
+    --paper-2: #e4ddc9;
+    --ink: #2b2620;
+    --ink-soft: #6b6252;
+    --rule: #c7bc9c;
+    --rule-strong: #a89a72;
+    --ledger-green: #1e3a34;
+    --ledger-green-2: #2a4d45;
+    --good: #2f6f4e;
+    --warn: #a13d2d;
+    --gold: #a9793f;
+    --card-bg: #f5f1e5;
+    --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #16201c;
+      --paper-2: #1c2823;
+      --ink: #e9e2cf;
+      --ink-soft: #a89e88;
+      --rule: #3a453e;
+      --rule-strong: #4d5a51;
+      --ledger-green: #7fae9d;
+      --ledger-green-2: #9dc4b4;
+      --good: #6fbd8f;
+      --warn: #e28066;
+      --gold: #d9ab6f;
+      --card-bg: #1c2823;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #16201c;
+    --paper-2: #1c2823;
+    --ink: #e9e2cf;
+    --ink-soft: #a89e88;
+    --rule: #3a453e;
+    --rule-strong: #4d5a51;
+    --ledger-green: #7fae9d;
+    --ledger-green-2: #9dc4b4;
+    --good: #6fbd8f;
+    --warn: #e28066;
+    --gold: #d9ab6f;
+    --card-bg: #1c2823;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-serif);
+  }
+  body {
+    padding: 28px 16px 60px;
+    min-height: 100vh;
+  }
+  .sheet {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  header.masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 3px double var(--rule-strong);
+    padding-bottom: 12px;
+    margin-bottom: 22px;
+  }
+  header.masthead h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  header.masthead .sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 18px 18px 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 14px;
+    color: var(--ledger-green);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .card h2 .hint {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .row:last-child { border-bottom: none; }
+  .row .label { flex: 1; font-size: 0.92rem; }
+  .row .label input[type="text"] {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed transparent;
+    font-family: var(--font-serif);
+    font-size: 0.92rem;
+    color: var(--ink);
+    padding: 2px 0;
+  }
+  .row .label input[type="text"]:focus {
+    outline: none;
+    border-bottom: 1px dashed var(--rule-strong);
+  }
+  .amt-wrap {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+  .amt-wrap span.cur { color: var(--ink-soft); margin-right: 2px; }
+  .amt-wrap input[type="number"] {
+    width: 82px;
+    text-align: right;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--rule-strong);
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    color: var(--ink);
+    padding: 2px 0;
+  }
+  .amt-wrap input[type="number"]:focus { outline: none; border-bottom: 1px solid var(--ledger-green); }
+  .per-mo { font-size: 0.68rem; color: var(--ink-soft); margin-left: 6px; }
+
+  .remove-btn {
+    background: none; border: none; color: var(--ink-soft);
+    font-size: 0.95rem; cursor: pointer; padding: 2px 6px;
+    line-height: 1;
+  }
+  .remove-btn:hover { color: var(--warn); }
+
+  .add-line {
+    background: none;
+    border: 1px dashed var(--rule-strong);
+    color: var(--ledger-green);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 7px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .add-line:hover { background: var(--paper-2); }
+
+  .pay-input-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pay-input-row .amt-wrap input[type="number"] { width: 100px; font-size: 1.1rem; }
+
+  .split-controls {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .split-controls label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .split-controls input[type="range"] {
+    width: 140px;
+    accent-color: var(--ledger-green);
+  }
+  .split-val { font-family: var(--font-mono); font-size: 0.8rem; margin-left: 6px; }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: center;
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .name {
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .breakdown-row .name small {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+  .breakdown-row .value {
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+  .breakdown-row.savings .value { color: var(--good); }
+  .breakdown-row.needs .value { color: var(--ink); }
+  .breakdown-row.wants .value { color: var(--gold); }
+  .breakdown-row.warn .value { color: var(--warn); }
+
+  .bar-track {
+    height: 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    margin: 4px 0 16px;
+  }
+  .bar-seg.needs { background: var(--ink-soft); }
+  .bar-seg.savings { background: var(--good); }
+  .bar-seg.wants { background: var(--gold); }
+  .bar-seg.over { background: var(--warn); }
+
+  .flag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border: 1px solid var(--warn);
+    padding: 8px 10px;
+    border-radius: 3px;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .register-entry {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.88rem;
+  }
+  .register-entry:last-child { border-bottom: none; }
+  .register-entry input[type="date"],
+  .register-entry input[type="text"] {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed transparent;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink);
+    width: 100%;
+  }
+  .register-entry input:focus { outline: none; border-bottom: 1px dashed var(--rule-strong); }
+  .register-entry .dep {
+    font-family: var(--font-mono);
+    color: var(--good);
+    font-size: 0.88rem;
+    text-align: right;
+  }
+  .register-entry .dep input {
+    width: 70px; text-align: right; color: var(--good); font-weight: 500;
+  }
+  .register-entry .running {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    text-align: right;
+    min-width: 68px;
+  }
+
+  .empty-note {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    padding: 10px 0;
+  }
+
+  .total-line {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 12px;
+    margin-top: 4px;
+    border-top: 2px solid var(--rule-strong);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .total-line .value { font-family: var(--font-mono); color: var(--ledger-green); }
+
+  .theme-toggle {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+
+  footer.note {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--ink-soft);
+    margin-top: 30px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" type="button">☾ / ☀</button>
+
+<div class="sheet">
+  <header class="masthead">
+    <h1>Paycheck Ledger</h1>
+    <div class="sub">BIWEEKLY BUDGET<br>KEPT IN THIS BROWSER</div>
+  </header>
+
+  <div class="card">
+    <h2>Your data <span class="hint">save to a file / load from a file</span></h2>
+    <div class="row" style="border-bottom:none; gap:10px; flex-wrap:wrap;">
+      <button class="add-line" id="exportBtn" type="button" style="margin-top:0;">↓ Export to file</button>
+      <button class="add-line" id="importBtn" type="button" style="margin-top:0;">↑ Import from file</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+    <div id="importMsg" class="empty-note" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Paycheck <span class="hint">every 2 weeks</span></h2>
+    <div class="row pay-input-row">
+      <div class="label">Take-home pay</div>
+      <div class="amt-wrap"><span class="cur">$</span><input type="number" id="payAmount" step="1" min="0"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Fixed costs <span class="hint">billed monthly, split across 2 checks</span></h2>
+    <div id="fixedList"></div>
+    <button class="add-line" id="addFixed" type="button">+ add a bill</button>
+  </div>
+
+  <div class="card">
+    <h2>Savings target <span class="hint">% of each paycheck</span></h2>
+    <div class="split-controls">
+      <div>
+        <label for="savePct">SAVE</label>
+        <input type="range" id="savePct" min="5" max="50" step="1">
+        <span class="split-val" id="savePctVal"></span>
+      </div>
+    </div>
+    <div id="breakdown"></div>
+    <div class="bar-track" id="barTrack"></div>
+    <div id="flagArea"></div>
+  </div>
+
+  <div class="card">
+    <h2>Savings register <span class="hint">log what you actually moved</span></h2>
+    <div id="register"></div>
+    <button class="add-line" id="addEntry" type="button">+ log a deposit</button>
+    <div class="total-line">
+      <div>Total saved</div>
+      <div class="value" id="registerTotal">$0</div>
+    </div>
+  </div>
+
+  <footer class="note">
+    Everything here stays in this browser only — nothing is sent anywhere.<br>
+    Clearing site data or switching browsers will reset it.
+  </footer>
+</div>
+
+<script>
+(function() {
+  var STORAGE_KEY = 'paycheck-ledger-v1';
+
+  var defaultState = {
+    pay: 1300,
+    fixed: [
+      { name: 'Car payment', monthly: 930 },
+      { name: 'Insurance', monthly: 420 },
+      { name: 'Necessities', monthly: 76 }
+    ],
+    savePct: 18,
+    entries: []
+  };
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return JSON.parse(JSON.stringify(defaultState));
+      var parsed = JSON.parse(raw);
+      if (!parsed.fixed) parsed.fixed = defaultState.fixed;
+      if (!parsed.entries) parsed.entries = [];
+      if (typeof parsed.savePct !== 'number') parsed.savePct = 18;
+      if (typeof parsed.pay !== 'number') parsed.pay = 1300;
+      return parsed;
+    } catch (e) {
+      return JSON.parse(JSON.stringify(defaultState));
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { /* storage unavailable, continue in-memory */ }
+  }
+
+  var state = loadState();
+
+  var fmt = function(n) {
+    var v = isFinite(n) ? n : 0;
+    var neg = v < 0;
+    v = Math.abs(v);
+    var s = '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return neg ? '-' + s : s;
+  };
+
+  var payAmountEl = document.getElementById('payAmount');
+  var fixedListEl = document.getElementById('fixedList');
+  var addFixedBtn = document.getElementById('addFixed');
+  var savePctEl = document.getElementById('savePct');
+  var savePctValEl = document.getElementById('savePctVal');
+  var breakdownEl = document.getElementById('breakdown');
+  var barTrackEl = document.getElementById('barTrack');
+  var flagAreaEl = document.getElementById('flagArea');
+  var registerEl = document.getElementById('register');
+  var addEntryBtn = document.getElementById('addEntry');
+  var registerTotalEl = document.getElementById('registerTotal');
+  var themeToggle = document.getElementById('themeToggle');
+
+  function fixedPerPaycheck() {
+    var totalMonthly = state.fixed.reduce(function(sum, f) { return sum + (Number(f.monthly) || 0); }, 0);
+    return totalMonthly / 2;
+  }
+
+  function renderFixed() {
+    fixedListEl.innerHTML = '';
+    state.fixed.forEach(function(item, idx) {
+      var row = document.createElement('div');
+      row.className = 'row';
+
+      var labelDiv = document.createElement('div');
+      labelDiv.className = 'label';
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = item.name;
+      nameInput.addEventListener('input', function() {
+        state.fixed[idx].name = nameInput.value;
+        saveState();
+      });
+      labelDiv.appendChild(nameInput);
+
+      var amtWrap = document.createElement('div');
+      amtWrap.className = 'amt-wrap';
+      var cur = document.createElement('span');
+      cur.className = 'cur';
+      cur.textContent = '$';
+      var amtInput = document.createElement('input');
+      amtInput.type = 'number';
+      amtInput.min = '0';
+      amtInput.step = '1';
+      amtInput.value = item.monthly;
+      amtInput.addEventListener('input', function() {
+        state.fixed[idx].monthly = Number(amtInput.value) || 0;
+        saveState();
+        renderBreakdown();
+      });
+      var perMo = document.createElement('span');
+      perMo.className = 'per-mo';
+      perMo.textContent = '/mo';
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.type = 'button';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', function() {
+        state.fixed.splice(idx, 1);
+        saveState();
+        renderFixed();
+        renderBreakdown();
+      });
+
+      amtWrap.appendChild(cur);
+      amtWrap.appendChild(amtInput);
+      amtWrap.appendChild(perMo);
+
+      row.appendChild(labelDiv);
+      row.appendChild(amtWrap);
+      row.appendChild(removeBtn);
+      fixedListEl.appendChild(row);
+    });
+  }
+
+  function renderBreakdown() {
+    var pay = Number(state.pay) || 0;
+    var fixed = fixedPerPaycheck();
+    var savePct = Number(state.savePct) || 0;
+    var saveTarget = pay * (savePct / 100);
+    var wants = pay - fixed - saveTarget;
+    var needsPctOfPay = pay > 0 ? (fixed / pay) * 100 : 0;
+
+    savePctValEl.textContent = savePct + '%';
+
+    breakdownEl.innerHTML = '';
+
+    function addRow(cls, name, small, value) {
+      var row = document.createElement('div');
+      row.className = 'breakdown-row ' + cls;
+      var nameDiv = document.createElement('div');
+      nameDiv.className = 'name';
+      var strong = document.createElement('span');
+      strong.textContent = name;
+      var smallEl = document.createElement('small');
+      smallEl.textContent = small;
+      nameDiv.appendChild(strong);
+      nameDiv.appendChild(smallEl);
+      var valDiv = document.createElement('div');
+      valDiv.className = 'value';
+      valDiv.textContent = fmt(value);
+      row.appendChild(nameDiv);
+      row.appendChild(valDiv);
+      breakdownEl.appendChild(row);
+    }
+
+    addRow('needs', 'Needs (fixed bills)', needsPctOfPay.toFixed(0) + '% of this check', fixed);
+    addRow('savings', 'Savings', savePct + '% of this check', saveTarget);
+    addRow(wants < 0 ? 'warn' : 'wants', 'Left for everything else', wants < 0 ? 'you are short this check' : 'groceries, gas, fun, etc.', wants);
+
+    var total = fixed + saveTarget + (wants > 0 ? wants : 0);
+    barTrackEl.innerHTML = '';
+    if (total > 0) {
+      var segs = [
+        { cls: 'needs', v: fixed },
+        { cls: 'savings', v: saveTarget },
+        { cls: 'wants', v: wants > 0 ? wants : 0 }
+      ];
+      segs.forEach(function(s) {
+        if (s.v <= 0) return;
+        var seg = document.createElement('div');
+        seg.className = 'bar-seg ' + s.cls;
+        seg.style.width = (s.v / total * 100) + '%';
+        barTrackEl.appendChild(seg);
+      });
+    }
+
+    flagAreaEl.innerHTML = '';
+    if (wants < 0) {
+      var flag = document.createElement('div');
+      flag.className = 'flag';
+      flag.textContent = 'Your fixed bills plus this savings target add up to more than the paycheck. Lower the savings slider or check your bill amounts.';
+      flagAreaEl.appendChild(flag);
+    } else if (needsPctOfPay > 50) {
+      var flag2 = document.createElement('div');
+      flag2.className = 'flag';
+      flag2.textContent = 'Fixed bills alone are ' + needsPctOfPay.toFixed(0) + '% of this paycheck — above the usual 50% guideline. The savings percentage above is set to fit what is actually left over.';
+      flagAreaEl.appendChild(flag2);
+    }
+
+    saveState();
+  }
+
+  function renderRegister() {
+    registerEl.innerHTML = '';
+    if (state.entries.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'empty-note';
+      empty.textContent = 'No deposits logged yet. Add one after each payday.';
+      registerEl.appendChild(empty);
+    }
+    var running = 0;
+    state.entries.forEach(function(entry, idx) {
+      running += Number(entry.amount) || 0;
+      var row = document.createElement('div');
+      row.className = 'register-entry';
+
+      var dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = entry.date || '';
+      dateInput.addEventListener('input', function() {
+        state.entries[idx].date = dateInput.value;
+        saveState();
+      });
+
+      var noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.placeholder = 'note';
+      noteInput.value = entry.note || '';
+      noteInput.addEventListener('input', function() {
+        state.entries[idx].note = noteInput.value;
+        saveState();
+      });
+
+      var depWrap = document.createElement('div');
+      depWrap.className = 'dep';
+      var depInput = document.createElement('input');
+      depInput.type = 'number';
+      depInput.step = '1';
+      depInput.value = entry.amount;
+      depInput.addEventListener('input', function() {
+        state.entries[idx].amount = Number(depInput.value) || 0;
+        saveState();
+        renderRegister();
+      });
+      depWrap.appendChild(depInput);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.type = 'button';
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', function() {
+        state.entries.splice(idx, 1);
+        saveState();
+        renderRegister();
+      });
+
+      row.appendChild(dateInput);
+      row.appendChild(noteInput);
+      row.appendChild(depWrap);
+      row.appendChild(removeBtn);
+      registerEl.appendChild(row);
+    });
+
+    registerTotalEl.textContent = fmt(running);
+  }
+
+  payAmountEl.value = state.pay;
+  payAmountEl.addEventListener('input', function() {
+    state.pay = Number(payAmountEl.value) || 0;
+    renderBreakdown();
+  });
+
+  addFixedBtn.addEventListener('click', function() {
+    state.fixed.push({ name: 'New bill', monthly: 0 });
+    saveState();
+    renderFixed();
+    renderBreakdown();
+  });
+
+  savePctEl.value = state.savePct;
+  savePctEl.addEventListener('input', function() {
+    state.savePct = Number(savePctEl.value);
+    renderBreakdown();
+  });
+
+  addEntryBtn.addEventListener('click', function() {
+    var today = new Date().toISOString().slice(0, 10);
+    state.entries.push({ date: today, note: '', amount: Math.round((Number(state.pay) || 0) * (Number(state.savePct) || 0) / 100) });
+    saveState();
+    renderRegister();
+  });
+
+  themeToggle.addEventListener('click', function() {
+    var current = document.documentElement.getAttribute('data-theme');
+    if (current === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else if (current === 'light') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  });
+
+  var exportBtn = document.getElementById('exportBtn');
+  var importBtn = document.getElementById('importBtn');
+  var importFile = document.getElementById('importFile');
+  var importMsg = document.getElementById('importMsg');
+
+  exportBtn.addEventListener('click', function() {
+    try {
+      var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = 'paycheck-ledger-' + stamp + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showImportMsg('Could not export right now — try again.', true);
+    }
+  });
+
+  importBtn.addEventListener('click', function() {
+    importFile.value = '';
+    importFile.click();
+  });
+
+  importFile.addEventListener('change', function() {
+    var file = importFile.files && importFile.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      try {
+        var parsed = JSON.parse(reader.result);
+        if (typeof parsed.pay !== 'number' || !Array.isArray(parsed.fixed)) {
+          throw new Error('bad shape');
+        }
+        state.pay = parsed.pay;
+        state.fixed = parsed.fixed;
+        state.savePct = typeof parsed.savePct === 'number' ? parsed.savePct : 18;
+        state.entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+        saveState();
+        payAmountEl.value = state.pay;
+        savePctEl.value = state.savePct;
+        renderFixed();
+        renderBreakdown();
+        renderRegister();
+        showImportMsg('Imported. Your data has been loaded and saved to this browser.', false);
+      } catch (e) {
+        showImportMsg('That file did not look like a Paycheck Ledger export.', true);
+      }
+    };
+    reader.onerror = function() {
+      showImportMsg('Could not read that file — try again.', true);
+    };
+    reader.readAsText(file);
+  });
+
+  function showImportMsg(text, isError) {
+    importMsg.style.display = 'block';
+    importMsg.textContent = text;
+    importMsg.style.color = isError ? 'var(--warn)' : 'var(--good)';
+  }
+
+  renderFixed();
+  renderBreakdown();
+  renderRegister();
+})();
+</script>
+
+</body>
+</html>
